@@ -4,6 +4,7 @@
 #include "qlinear_pool.h"
 
 #include "contrib_ops/cpu/qlinear_lookup_table.h"
+#include "contrib_ops/cpu/qlinear_global_average_pool.h"
 #include "core/common/safeint.h"
 #include "core/util/math_cpuonly.h"
 #include "core/providers/common.h"
@@ -565,11 +566,18 @@ Status QLinearAveragePool::Compute(OpKernelContext* context) const {
   Tensor* Y = context->Output(0, output_dims);
   const auto* X_data = X->Data<uint8_t>();
   auto* Y_data = Y->MutableData<uint8_t>();
+  ThreadPool* tp = context->GetOperatorThreadPool();
+
+  // Check for special case which could fall back to global average pool
+  bool fallback_to_global = std::equal(x_shape.GetDims().begin() + 2, x_shape.GetDims().end(), kernel_shape.begin()) &&
+                            std::all_of(pads.begin(), pads.end(), [](int64_t dim) { return dim == 0LL; });
+  if (fallback_to_global) {
+    return ComputeQLinearGlobalAvgPool(X_data, x_scale, x_zero_point, Y_data, y_scale, y_zero_point,
+                                       batch_count, channels, kernel_size, channels_last_, tp);
+  }
 
   AllocatorPtr allocator;
   ORT_RETURN_IF_ERROR(context->GetTempSpaceAllocator(&allocator));
-  ThreadPool* tp = context->GetOperatorThreadPool();
-
   float* x_data_fp32 = nullptr;
   BufferUniquePtr x_data_fp32_guard;
   if (kernel_shape.size() <= 3) {
