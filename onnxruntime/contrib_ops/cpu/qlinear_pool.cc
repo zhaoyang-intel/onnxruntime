@@ -3,6 +3,7 @@
 
 #include "qlinear_pool.h"
 
+#include "contrib_ops/cpu/qlinear_lookup_table.h"
 #include "core/common/safeint.h"
 #include "core/util/math_cpuonly.h"
 #include "core/providers/common.h"
@@ -314,7 +315,6 @@ struct QLinearPoolNhwc2DTask final {
   }
 };
 
-
 template <typename T8Bits, typename PoolType>
 struct QLinearPool3DTask final {
   const float* X_data;
@@ -493,6 +493,24 @@ struct QLinearPoolNhwc3DTask final {
   }
 };
 
+template <typename T8Bits>
+void dequantize_array(int64_t N, const T8Bits* input, float scale, T8Bits zero_point, float* output, ThreadPool* tp) {
+  if (N > 512) {
+    float dequantize_lookup[256];
+    for (int i = 0; i < 256; ++i) {
+      T8Bits x = static_cast<T8Bits>(i);
+      dequantize_lookup[i] = dequantize_value(x, scale, zero_point);
+    }
+    ThreadPool::TryParallelFor(tp, (ptrdiff_t)N, 1.0f, [input, output, &dequantize_lookup](ptrdiff_t first, ptrdiff_t last) {
+      QLinearLookupTableTransform((const uint8_t*)(input + first), dequantize_lookup, output + first, (size_t)(last - first));
+    });
+  } else {
+    for (int64_t i = 0; i < N; ++i) {
+      *output++ = dequantize_value(input[i], scale, zero_point);
+    }
+  }
+}
+
 Status QLinearAveragePool::Compute(OpKernelContext* context) const {
   const auto tensor_x_scale = context->Input<Tensor>(1);
   const auto tensor_x_zero_point = context->Input<Tensor>(2);
@@ -559,16 +577,9 @@ Status QLinearAveragePool::Compute(OpKernelContext* context) const {
   float* x_data_fp32 = nullptr;
   BufferUniquePtr x_data_fp32_guard;
   if (kernel_shape.size() <= 3) {
-    x_data_fp32 = (float *)allocator->Alloc(SafeInt<size_t>(x_shape.Size()) * sizeof(float));
+    x_data_fp32 = (float*)allocator->Alloc(SafeInt<size_t>(x_shape.Size()) * sizeof(float));
     x_data_fp32_guard = BufferUniquePtr(x_data_fp32, BufferDeleter(allocator));
-
-    ThreadPool::TryParallelFor(tp, x_shape.Size(), 1.0f, [=, &x_data_fp32](ptrdiff_t first, ptrdiff_t last) {
-      const auto* x8 = X_data + first;
-      float* x32 = x_data_fp32 + first;
-      for (ptrdiff_t i = 0, sz = last - first; i < sz; ++i) {
-        *x32++ = dequantize_value(x8[i], x_scale, x_zero_point);
-      }
-    });
+    dequantize_array(x_shape.Size(), X_data, x_scale, x_zero_point, x_data_fp32, tp);
   }
 
   switch (kernel_shape.size()) {
