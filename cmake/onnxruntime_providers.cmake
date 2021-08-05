@@ -14,6 +14,8 @@ file(GLOB_RECURSE onnxruntime_cpu_contrib_ops_srcs CONFIGURE_DEPENDS
   "${ONNXRUNTIME_ROOT}/contrib_ops/cpu/*.h"
   "${ONNXRUNTIME_ROOT}/contrib_ops/cpu/*.cc"
 )
+set(LSTM_RNNHELPER_SRC ${ONNXRUNTIME_ROOT}/core/providers/cpu/rnn/rnn_helpers.cc)
+set_source_files_properties(${LSTM_RNNHELPER_SRC} PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
 
 file(GLOB_RECURSE onnxruntime_cuda_contrib_ops_cc_srcs CONFIGURE_DEPENDS
   "${ONNXRUNTIME_ROOT}/contrib_ops/cuda/*.h"
