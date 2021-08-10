@@ -80,10 +80,11 @@ endif()
 
 onnxruntime_add_static_library(onnxruntime_graph ${onnxruntime_graph_lib_src})
 add_dependencies(onnxruntime_graph onnx_proto flatbuffers)
-onnxruntime_add_include_to_target(onnxruntime_graph onnxruntime_common onnx onnx_proto ${PROTOBUF_LIB} flatbuffers)
+onnxruntime_add_include_to_target(onnxruntime_graph onnxruntime_common onnx onnx_proto ${PROTOBUF_LIB} flatbuffers  safeint_interface Boost::mp11)
 if(NOT MSVC)
   target_compile_options(onnxruntime_graph PRIVATE "-Wno-parentheses")
 endif()
+
 if (onnxruntime_ENABLE_TRAINING)
   #TODO: the graph library should focus on ONNX IR, it shouldn't depend on math libraries like MKLML/OpenBlas
   target_include_directories(onnxruntime_graph PRIVATE ${MKLML_INCLUDE_DIR})
@@ -125,7 +126,4 @@ if (WIN32)
         /EHsc   # exception handling - C++ may throw, extern "C" will not
     )
   endif()
-
-  # Add Code Analysis properties to enable C++ Core checks. Have to do it via a props file include.
-  set_target_properties(onnxruntime_graph PROPERTIES VS_USER_PROPS ${PROJECT_SOURCE_DIR}/EnableVisualStudioCodeAnalysis.props)
 endif()
