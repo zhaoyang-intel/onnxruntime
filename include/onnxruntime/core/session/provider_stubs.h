@@ -52,7 +52,6 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Nuphar,
 #endif
 
 // #2 entry points
-
 #ifndef USE_CUDA
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_CUDA, _In_ OrtSessionOptions* options, int device_id);
 #endif
