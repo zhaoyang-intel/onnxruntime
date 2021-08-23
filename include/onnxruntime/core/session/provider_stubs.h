@@ -28,6 +28,7 @@ When adding a new EP that is not behind the provider bridge you need to:
   3) Add the exported symbol name for the stub to the symbols.txt file in the onnxruntime/core/session directory.
 */
 
+// #1 entry points
 #ifndef USE_DML
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_DML, _In_ OrtSessionOptions* options, int device_id);
 #endif
@@ -48,4 +49,23 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Nnapi, _In_ OrtSessionOp
 #ifndef USE_NUPHAR
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Nuphar,
                _In_ OrtSessionOptions* options, int allow_unaligned_buffers, _In_ const char* settings);
+#endif
+
+// #2 entry points
+
+#ifndef USE_CUDA
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_CUDA, _In_ OrtSessionOptions* options, int device_id);
+#endif
+
+#ifndef USE_DNNL
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Dnnl, _In_ OrtSessionOptions* options, int use_arena);
+#endif
+
+#ifndef USE_OPENVINO
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_OpenVINO, _In_ OrtSessionOptions* options,
+               _In_ const char* device_type);
+#endif
+
+#ifndef USE_TENSORRT
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtSessionOptions* options, int device_id);
 #endif
