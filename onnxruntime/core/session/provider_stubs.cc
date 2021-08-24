@@ -58,6 +58,14 @@ ORT_API_STATUS_IMPL(OrtSessionOptionsAppendExecutionProvider_Nuphar,
 }
 #endif
 
+/* see provider_bridge_ort.cc for these:
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_CUDA, _In_ OrtSessionOptions* options, int device_id);
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Dnnl, _In_ OrtSessionOptions* options, int use_arena);
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_OpenVINO, _In_ OrtSessionOptions* options,
+               _In_ const char* device_type);
+ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtSessionOptions* options, int device_id);
+*/
+
 /*
 OrtApis::SessionOptionsAppendExecutionProvider_<EP> stubs for EPs not included in this build.
 

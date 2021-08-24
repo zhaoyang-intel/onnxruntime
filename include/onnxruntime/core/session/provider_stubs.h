@@ -27,7 +27,7 @@ When adding a new EP that is not behind the provider bridge you need to:
   3) Add the exported symbol name for the stub to the symbols.txt file in the onnxruntime/core/session directory.
 */
 
-// #1 entry points
+// Entry points exported directly from the EP code
 #ifndef USE_DML
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_DML, _In_ OrtSessionOptions* options, int device_id);
 #endif
@@ -50,7 +50,7 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Nuphar,
                _In_ OrtSessionOptions* options, int allow_unaligned_buffers, _In_ const char* settings);
 #endif
 
-// #2 entry points
+// Entry points implemented by provider_bridge_ort.cc
 #ifndef USE_CUDA
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_CUDA, _In_ OrtSessionOptions* options, int device_id);
 #endif
