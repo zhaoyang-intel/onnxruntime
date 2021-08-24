@@ -71,7 +71,7 @@ TODO: When the NNAPI or CoreML EPs are setup to use the provider bridge the sour
       in a minimal build and these stubs should move to provider_bridge_ort.cc.
 */
 
-// EPs falling into the first case
+// EPs in the first case
 #ifndef USE_ROCM
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_ROCM,
                     _In_ OrtSessionOptions* options, _In_ const OrtROCMProviderOptions* rocm_options) {
@@ -81,7 +81,7 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_ROCM,
 }
 #endif
 
-// EPs falling into the second case
+// EPs in the second case
 #if defined(ORT_MINIMAL_BUILD)
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_CUDA,
                     _In_ OrtSessionOptions* options, _In_ const OrtCUDAProviderOptions* provider_options) {
@@ -110,14 +110,14 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_OpenVINO,
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_TensorRT,
                     _In_ OrtSessionOptions* options, _In_ const OrtTensorRTProviderOptions* tensorrt_options) {
   ORT_UNUSED_PARAMETER(options);
-  ORT_UNUSED_PARAMETER(provider_options);
+  ORT_UNUSED_PARAMETER(tensorrt_options);
   return CreateNotEnabledStatus("TensorRT");
 }
 
 ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_TensorRT_V2,
                     _In_ OrtSessionOptions* options, _In_ const OrtTensorRTProviderOptionsV2* tensorrt_options) {
   ORT_UNUSED_PARAMETER(options);
-  ORT_UNUSED_PARAMETER(provider_options);
+  ORT_UNUSED_PARAMETER(tensorrt_options);
   return CreateNotEnabledStatus("TensorRT");
 }
 #endif

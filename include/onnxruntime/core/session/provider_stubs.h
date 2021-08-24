@@ -17,7 +17,6 @@ There are two ways this addition to SessionOptions currently happens:
    The naming convention is SessionOptionsAppendExecutionProvider_<EP>
 
 When an EP is an external library the provider bridge will provide the entry point.
-For other EPs we provide it here.
 
 NOTE: The function of style #1 is easier to use from places like the C# and Java bindings as it does not use
 a struct for passing the options.
