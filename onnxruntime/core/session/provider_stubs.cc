@@ -12,6 +12,10 @@ static OrtStatus* CreateNotEnabledStatus(const std::string& ep) {
   return OrtApis::CreateStatus(ORT_FAIL, (ep + " execution provider is not enabled in this build. ").c_str());
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef USE_DML
 ORT_API_STATUS_IMPL(OrtSessionOptionsAppendExecutionProvider_DML, _In_ OrtSessionOptions* options, int device_id) {
   ORT_UNUSED_PARAMETER(options);
@@ -65,6 +69,10 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_OpenVINO, _In_ OrtSessio
                _In_ const char* device_type);
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtSessionOptions* options, int device_id);
 */
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
 OrtApis::SessionOptionsAppendExecutionProvider_<EP> stubs for EPs not included in this build.
@@ -128,4 +136,36 @@ ORT_API_STATUS_IMPL(OrtApis::SessionOptionsAppendExecutionProvider_TensorRT_V2,
   ORT_UNUSED_PARAMETER(tensorrt_options);
   return CreateNotEnabledStatus("TensorRT");
 }
+
+ORT_API_STATUS_IMPL(OrtApis::CreateTensorRTProviderOptions, _Outptr_ OrtTensorRTProviderOptionsV2** out) {
+  ORT_UNUSED_PARAMETER(out);
+  return CreateNotEnabledStatus("TensorRT");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::UpdateTensorRTProviderOptions,
+                    _Inout_ OrtTensorRTProviderOptionsV2* tensorrt_options,
+                    _In_reads_(num_keys) const char* const* provider_options_keys,
+                    _In_reads_(num_keys) const char* const* provider_options_values,
+                    size_t num_keys) {
+  ORT_UNUSED_PARAMETER(tensorrt_options);
+  ORT_UNUSED_PARAMETER(provider_options_keys);
+  ORT_UNUSED_PARAMETER(provider_options_values);
+  ORT_UNUSED_PARAMETER(num_keys);
+  return CreateNotEnabledStatus("TensorRT");
+}
+
+ORT_API_STATUS_IMPL(OrtApis::GetTensorRTProviderOptionsAsString,
+                    _In_ const OrtTensorRTProviderOptionsV2* tensorrt_options,
+                    _Inout_ OrtAllocator* allocator,
+                    _Outptr_ char** ptr) {
+  ORT_UNUSED_PARAMETER(tensorrt_options);
+  ORT_UNUSED_PARAMETER(allocator);
+  ORT_UNUSED_PARAMETER(ptr);
+  return CreateNotEnabledStatus("TensorRT");
+}
+
+ORT_API(void, OrtApis::ReleaseTensorRTProviderOptions, _Frees_ptr_opt_ OrtTensorRTProviderOptionsV2* ptr) {
+  ORT_UNUSED_PARAMETER(ptr);
+}
+
 #endif

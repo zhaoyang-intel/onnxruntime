@@ -28,6 +28,10 @@ When adding a new EP that is not behind the provider bridge you need to:
 */
 
 // Entry points exported directly from the EP code
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef USE_DML
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_DML, _In_ OrtSessionOptions* options, int device_id);
 #endif
@@ -66,4 +70,8 @@ ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_OpenVINO, _In_ OrtSessio
 
 #ifndef USE_TENSORRT
 ORT_API_STATUS(OrtSessionOptionsAppendExecutionProvider_Tensorrt, _In_ OrtSessionOptions* options, int device_id);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
