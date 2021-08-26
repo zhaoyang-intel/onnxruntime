@@ -296,6 +296,7 @@ std::vector<DLManagedTensor*> ExecuteATenOpBackward(DLManagedTensor* dlpack, int
   AutogradContext autograd_context = AutogradContextCache::Instance().Pop(context_id);
   std::queue<std::pair<std::shared_ptr<torch::autograd::Node>, at::Tensor>> execution_queue;
   execution_queue.push(std::make_pair(autograd_context.output_grad_fn, at::fromDLPack(dlpack)));
+  std::unordered_set<torch::autograd::AccumulateGrad*> accu_set;
   while (!execution_queue.empty()) {
     std::pair<std::shared_ptr<torch::autograd::Node>, at::Tensor> execution_unit = execution_queue.front();
     execution_queue.pop();
@@ -303,7 +304,19 @@ std::vector<DLManagedTensor*> ExecuteATenOpBackward(DLManagedTensor* dlpack, int
     const torch::autograd::edge_list& edges = execution_unit.first->next_edges();
     TORCH_INTERNAL_ASSERT(gradients.size() == edges.size());
     for (size_t i = 0; i < edges.size(); i++) {
-      execution_queue.push(std::make_pair(edges[i].function, gradients[i]));
+      // Special handle AccumulateGrad to avoid a DtoD copy.
+      if (edges[i].function->name() == "torch::autograd::AccumulateGrad") {
+        std::shared_ptr<torch::autograd::AccumulateGrad> accu_grad_fn =
+            std::dynamic_pointer_cast<torch::autograd::AccumulateGrad>(edges[i].function);
+        if (accu_set.find(accu_grad_fn.get()) == accu_set.end()) {
+          accu_grad_fn->variable.mutable_grad() = gradients[i];
+          accu_set.insert(accu_grad_fn.get());
+        } else {
+          accu_grad_fn->variable.mutable_grad() += gradients[i];
+        }
+      } else {
+        execution_queue.push(std::make_pair(edges[i].function, gradients[i]));
+      }
     }
   }
 
