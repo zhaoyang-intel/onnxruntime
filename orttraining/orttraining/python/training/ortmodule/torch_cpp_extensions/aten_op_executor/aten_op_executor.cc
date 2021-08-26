@@ -2,9 +2,11 @@
 // Licensed under the MIT License.
 
 #include <torch/torch.h>
+#include <torch/csrc/autograd/functions/accumulate_grad.h>
 #include <ATen/DLConvertor.h>
 #include <unordered_map>
 #include <vector>
+#include <queue>
 
 template <typename T>
 c10::IValue ToIValue(const DLManagedTensor* dlpack, bool is_optional) {
@@ -160,12 +162,12 @@ class ATenOperatorCache {
   std::unordered_map<std::pair<std::string, std::string>, ATenOperator, PairHash> ops_;
 };
 
-// AutogradContext saves forward inputs that require grad, and the output tensor.
-// Backward executor will call output.backward, and fetch input grads from input tensors.
+// AutogradContext saves forward inputs' grad_fn that require grad, and the output's grad_fn.
+// Backward executor will call from output's grad_fn recursively, and get final input grads
+// from inputs' grad_fn's variable.
 struct AutogradContext {
-  std::vector<c10::IValue> inputs;
-  std::vector<bool> is_optional_inputs;
-  c10::IValue output;
+  std::shared_ptr<torch::autograd::Node> output_grad_fn;
+  std::vector<std::shared_ptr<torch::autograd::AccumulateGrad>> input_grad_fns;
 };
 
 class AutogradContextCache {
@@ -232,6 +234,7 @@ c10::IValue ExecuteInternal(const std::shared_ptr<torch::jit::Operator>& op, con
 std::vector<DLManagedTensor*> ExecuteATenOperator(const char* op_name, const char* overload_name,
                                                   const std::vector<DLManagedTensor*>& dlpacks,
                                                   const std::vector<int64_t>& requires_grad, int64_t* p_context_id) {
+  std::cout << "New way..." << std::endl;
   const auto& aten_op = ATenOperatorCache::Instance().GetOperator(op_name, overload_name);
   TORCH_INTERNAL_ASSERT(dlpacks.size() == aten_op.argument_size);
   std::vector<c10::IValue> arguments;
@@ -240,16 +243,14 @@ std::vector<DLManagedTensor*> ExecuteATenOperator(const char* op_name, const cha
   }
 
   AutogradContext autograd_context;
+  autograd_context.input_grad_fns.resize(requires_grad.size());
+  std::unordered_map<const at::Tensor*, size_t> grad_ptr_to_indices;
   for (size_t i = 0; i < requires_grad.size(); i++) {
     bool is_optional = aten_op.is_optional_arguments[i];
-    if (is_optional) {
-      arguments[i].toOptional<at::Tensor>().value().requires_grad_(true);
-    } else {
-      arguments[i].toTensor().requires_grad_(true);
-    }
-
-    autograd_context.inputs.emplace_back(arguments[i]);
-    autograd_context.is_optional_inputs.emplace_back(is_optional);
+    at::Tensor tensor =
+        aten_op.is_optional_arguments[i] ? arguments[i].toOptional<at::Tensor>().value() : arguments[i].toTensor();
+    tensor.requires_grad_(true);
+    grad_ptr_to_indices[&tensor.grad()] = i;
   }
 
   TORCH_INTERNAL_ASSERT(p_context_id || requires_grad.empty());
@@ -257,7 +258,32 @@ std::vector<DLManagedTensor*> ExecuteATenOperator(const char* op_name, const cha
   if (p_context_id) {
     // We need to enable Autograd in case there is not.
     c10::AutoGradMode auto_grad_mode(true);
-    autograd_context.output = ExecuteInternal(aten_op.op, arguments, aten_op.return_size, result);
+    c10::IValue first_output = ExecuteInternal(aten_op.op, arguments, aten_op.return_size, result);
+    autograd_context.output_grad_fn = first_output.toTensor().grad_fn();
+    std::queue<std::shared_ptr<torch::autograd::Node>> grad_fn_queue;
+    grad_fn_queue.push(autograd_context.output_grad_fn);
+    while (!grad_fn_queue.empty()) {
+      std::shared_ptr<torch::autograd::Node> grad_fn = grad_fn_queue.front();
+      grad_fn_queue.pop();
+      const torch::autograd::edge_list& edges = grad_fn->next_edges();
+      for (torch::autograd::Edge edge : edges) {
+        if (edge.function->name() == "torch::autograd::AccumulateGrad") {
+          std::shared_ptr<torch::autograd::AccumulateGrad> accu_grad_fn =
+              std::dynamic_pointer_cast<torch::autograd::AccumulateGrad>(edge.function);
+          auto it = grad_ptr_to_indices.find(&accu_grad_fn->variable.grad());
+          if (it != grad_ptr_to_indices.end() && !autograd_context.input_grad_fns[it->second]) {
+            autograd_context.input_grad_fns[it->second] = accu_grad_fn;
+          }
+        } else {
+          grad_fn_queue.push(edge.function);
+        }
+      }
+    }
+
+    for (size_t i = 0; i < autograd_context.input_grad_fns.size(); i++) {
+      TORCH_INTERNAL_ASSERT(autograd_context.input_grad_fns[i]);
+    }
+
     *p_context_id = AutogradContextCache::Instance().Insert(autograd_context);
   } else {
     ExecuteInternal(aten_op.op, arguments, aten_op.return_size, result);
@@ -267,16 +293,23 @@ std::vector<DLManagedTensor*> ExecuteATenOperator(const char* op_name, const cha
 }
 
 std::vector<DLManagedTensor*> ExecuteATenOpBackward(DLManagedTensor* dlpack, int64_t context_id) {
-  // Add this according to the PyGILState_Check in torch/csrc/autograd/python_engine.cpp.
-  // Otherwise, the autograd engine will not work.
-  pybind11::gil_scoped_release no_gil;
   AutogradContext autograd_context = AutogradContextCache::Instance().Pop(context_id);
-  autograd_context.output.toTensor().backward(at::fromDLPack(dlpack));
+  std::queue<std::pair<std::shared_ptr<torch::autograd::Node>, at::Tensor>> execution_queue;
+  execution_queue.push(std::make_pair(autograd_context.output_grad_fn, at::fromDLPack(dlpack)));
+  while (!execution_queue.empty()) {
+    std::pair<std::shared_ptr<torch::autograd::Node>, at::Tensor> execution_unit = execution_queue.front();
+    execution_queue.pop();
+    torch::autograd::variable_list gradients = (*execution_unit.first)({execution_unit.second});
+    const torch::autograd::edge_list& edges = execution_unit.first->next_edges();
+    TORCH_INTERNAL_ASSERT(gradients.size() == edges.size());
+    for (size_t i = 0; i < edges.size(); i++) {
+      execution_queue.push(std::make_pair(edges[i].function, gradients[i]));
+    }
+  }
+
   std::vector<DLManagedTensor*> result;
-  for (size_t i = 0; i < autograd_context.inputs.size(); i++) {
-    at::Tensor intput_grad = autograd_context.is_optional_inputs[i]
-                                 ? autograd_context.inputs[i].toOptional<at::Tensor>().value().grad()
-                                 : autograd_context.inputs[i].toTensor().grad();
+  for (size_t i = 0; i < autograd_context.input_grad_fns.size(); i++) {
+    at::Tensor intput_grad = autograd_context.input_grad_fns[i]->variable.grad();
     result.emplace_back(at::toDLPack(intput_grad.is_contiguous() ? intput_grad : intput_grad.contiguous()));
   }
 
