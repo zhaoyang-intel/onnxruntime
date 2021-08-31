@@ -180,7 +180,6 @@ jobs:
 
   - task: AzureCLI@2
     displayName: 'Azure CLI'
-    condition: and (succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     inputs:
       azureSubscription: AIInfraBuild
       scriptLocation: inlineScript
