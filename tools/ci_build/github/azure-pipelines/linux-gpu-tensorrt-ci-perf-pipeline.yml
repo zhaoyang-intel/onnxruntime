@@ -36,13 +36,12 @@ parameters:
 - name: PublishWheel
   displayName: Publish Wheel 
   type: boolean
-  default: false
+  default: true
 
 - name: ModelGroups
   type: object
   default: 
-    - "onnx-zoo-models"
-    - "partner-models"
+    - []
 
 - name: MemTest
   displayName: Run Memory Test
