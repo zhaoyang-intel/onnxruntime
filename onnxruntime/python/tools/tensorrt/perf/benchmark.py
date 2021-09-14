@@ -987,6 +987,8 @@ def run_onnxruntime(args, models):
          
                 # get standalone TensorRT perf
                 if standalone_trt in ep and args.trtexec: 
+                    if "fp16" in ep: 
+                        fp16 = True
                     trtexec = True 
                     try: 
                         if args.track_memory: 
