@@ -76,6 +76,8 @@ MultiplyAccumulateRowAvxVnni MACRO Vec1Reg, Vec2Reg
 ;
 ;   Isa - Supplies the instruction set architecture string.
 ;
+;   RowCount - Supplies the number of rows to produce.
+;
 ;   VectorOffset - Supplies the byte offset from the filter to fetch elements.
 ;
 ;   BroadcastOffset - Supplies the byte offset from the input to fetch elements.
@@ -83,11 +85,6 @@ MultiplyAccumulateRowAvxVnni MACRO Vec1Reg, Vec2Reg
 ; Implicit Arguments:
 ;
 ;   rdx - Supplies the address of the filter buffer.
-;
-;   rsi - Supplies the filter stride to access the packed data for the next 16
-;       output channels.
-;
-;   rbp - Supplies three times the above filter stride.
 ;
 ;   r10 - Supplies the address of the base of the input buffer.
 ;
@@ -108,24 +105,83 @@ MultiplyAccumulateRowAvxVnni MACRO Vec1Reg, Vec2Reg
 ;   ymm4-ymm15 - Supplies the block accumulators.
 ;
 
-ComputeBlock MACRO Isa, VectorOffset, BroadcastOffset
+ComputeBlock MACRO Isa, RowCount, VectorOffset, BroadcastOffset
 
         vmovdqu ymm0,YMMWORD PTR [rdx+VectorOffset]
         vmovdqu ymm1,YMMWORD PTR [rdx+VectorOffset+32]
-        vpbroadcastd ymm2,DWORD PTR [r10+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm4,ymm5
-        vpbroadcastd ymm2,DWORD PTR [r10+r11+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm6,ymm7
-        vpbroadcastd ymm2,DWORD PTR [r10+r12+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm8,ymm9
-        vpbroadcastd ymm2,DWORD PTR [r10+r13+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm10,ymm11
-IFIDNI <Isa>, <AvxVnni>
-        vpbroadcastd ymm2,DWORD PTR [r10+r14+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm12,ymm13
-        vpbroadcastd ymm2,DWORD PTR [r10+r15+BroadcastOffset]
-        MultiplyAccumulateRow&Isa& ymm14,ymm15
+        EmitIfCountGE RowCount,1,<vpbroadcastd ymm2,DWORD PTR [r10+BroadcastOffset]>
+        EmitIfCountGE RowCount,1,<MultiplyAccumulateRow&Isa& ymm4,ymm5>
+        EmitIfCountGE RowCount,2,<vpbroadcastd ymm2,DWORD PTR [r10+r11+BroadcastOffset]>
+        EmitIfCountGE RowCount,2,<MultiplyAccumulateRow&Isa& ymm6,ymm7>
+        EmitIfCountGE RowCount,3,<vpbroadcastd ymm2,DWORD PTR [r10+r12+BroadcastOffset]>
+        EmitIfCountGE RowCount,3,<MultiplyAccumulateRow&Isa& ymm8,ymm9>
+        EmitIfCountGE RowCount,4,<vpbroadcastd ymm2,DWORD PTR [r10+r13+BroadcastOffset]>
+        EmitIfCountGE RowCount,4,<MultiplyAccumulateRow&Isa& ymm10,ymm11>
+        EmitIfCountGE RowCount,5,<vpbroadcastd ymm2,DWORD PTR [r10+r14+BroadcastOffset]>
+        EmitIfCountGE RowCount,5,<MultiplyAccumulateRow&Isa& ymm12,ymm13>
+        EmitIfCountGE RowCount,6,<vpbroadcastd ymm2,DWORD PTR [r10+r15+BroadcastOffset]>
+        EmitIfCountGE RowCount,6,<MultiplyAccumulateRow&Isa& ymm14,ymm15>
+
+        ENDM
+
+;
+; Macro Description:
+;
+;   This macro generates code to execute the block compute macro multiple times
+;   and advancing the input and filter data pointers.
+;
+; Arguments:
+;
+;   Isa - Supplies the instruction set architecture string.
+;
+;   RowCount - Supplies the number of rows to produce.
+;
+;   UnrollLoop - Supplies a non-blank value if the loop should be unrolled to
+;       improve performance.
+;
+; Implicit Arguments:
+;
+;   rax - Supplies the number of input channels.
+;
+;   rdx - Supplies the address of the filter buffer.
+;
+;   r10 - Supplies the address of the base of the input buffer.
+;
+
+ComputeBlockLoop MACRO Isa, RowCount, UnrollLoop
+
+        LOCAL   ComputeBlockBy4Loop
+        LOCAL   ProcessRemainingBlocks
+        LOCAL   ComputeBlockBy1Loop
+        LOCAL   ComputeBlockLoopExit
+
+IFNB <UnrollLoop>
+        sub     rax,4*4
+        jb      ProcessRemainingBlocks
+
+ComputeBlockBy4Loop:
+        ComputeBlock Isa,RowCount,0*64,0
+        ComputeBlock Isa,RowCount,1*64,4
+        ComputeBlock Isa,RowCount,2*64,8
+        ComputeBlock Isa,RowCount,3*64,12
+        add     r10,4*4                     ; advance input base address
+        add     rdx,4*16*4                  ; advance filter address
+        sub     rax,4*4                     ; decrement elements remaining
+        jae     ComputeBlockBy4Loop
+
+ProcessRemainingBlocks:
+        add     rax,4*4                     ; correct for over-subtract above
+        jz      ComputeBlockLoopExit
 ENDIF
+
+ComputeBlockBy1Loop:
+        ComputeBlock Isa,RowCount,0*64,0
+        add     r10,4                       ; advance input base address
+        add     rdx,16*4                    ; advance filter address
+        sub     rax,4                       ; decrement elements remaining
+        jnz     ComputeBlockBy1Loop
+
+ComputeBlockLoopExit:
 
         ENDM
 
@@ -324,10 +380,6 @@ ENDIF
 ;
 ; Process an input block of length InputChannels for each element of the kernel.
 ;
-; To keep code size small, this kernel always computes a fixed number of output
-; rows. If the output count is less than this fixed number, then the first row
-; is duplicated into the unused slots and the results are discarded.
-;
 
 ProcessNextInputBlock:
         test    bpl,MLAS_CONV_SYM_FLAG_INPUT_DIRECT
@@ -397,31 +449,15 @@ ENDIF
 
 ComputeBlockLoopStart:
         mov     rax,rsi                     ; reload input channels
-        sub     rax,4*4
-        jb      ProcessRemainingBlocks
-
-        ALIGN   16
-ComputeBlockBy4Loop:
-        ComputeBlock Isa, 0*64, 0
-        ComputeBlock Isa, 1*64, 4
-        ComputeBlock Isa, 2*64, 8
-        ComputeBlock Isa, 3*64, 12
-        add     r10,4*4                     ; advance input base address
-        add     rdx,4*16*4                  ; advance filter address
-        sub     rax,4*4                     ; decrement elements remaining
-        jae     ComputeBlockBy4Loop
-
-ProcessRemainingBlocks:
-        add     rax,4*4                     ; correct for over-subtract above
-        jz      ComputeBlockLoopDone
-
-        ALIGN   16
-ComputeBlockBy1Loop:
-        ComputeBlock Isa, 0*64, 0
-        add     r10,4                       ; advance input base address
-        add     rdx,16*4                    ; advance filter address
-        sub     rax,4                       ; decrement elements remaining
-        jnz     ComputeBlockBy1Loop
+        cmp     ebx,2                       ; output count <= 2?
+        jbe     ComputeBlockLoopBy2
+IFIDNI <Isa>, <AvxVnni>
+        cmp     ebx,4                       ; output count <= 4?
+        jbe     ComputeBlockLoopBy4
+        ComputeBlockLoop Isa,6,UnrollLoop
+ELSE
+        ComputeBlockLoop Isa,4,UnrollLoop
+ENDIF
 
 ComputeBlockLoopDone:
         dec     r9                          ; decrement input blocks remaining
@@ -642,6 +678,20 @@ StoreQuantizedOutput1By8:
         vpackuswb xmm4,xmm4,xmm4
         vmovq   QWORD PTR [r8],xmm4
         jmp     ExitKernel
+
+;
+; Process the tail output counts out of line with a reduced block size.
+;
+
+IFIDNI <Isa>, <AvxVnni>
+ComputeBlockLoopBy4:
+        ComputeBlockLoop Isa,4
+        jmp     ComputeBlockLoopDone
+ENDIF
+
+ComputeBlockLoopBy2:
+        ComputeBlockLoop Isa,2
+        jmp     ComputeBlockLoopDone
 
         NESTED_END MlasConvSymKernel&Isa&, _TEXT
 
