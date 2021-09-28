@@ -94,6 +94,7 @@ struct MLAS_CONV_SYM_DISPATCH {
     MLAS_CONV_SYM_DEPTHWISE_KERNEL* DepthwiseKernel;
     uint8_t KernelChannelCount;
     uint8_t KernelOutputCount;
+    uint8_t KernelOutputChannelAlignment;
     uint8_t KernelDepthwiseChannelCount;
     uint8_t KernelDepthwiseOutputCount;
 };
@@ -105,6 +106,7 @@ const MLAS_CONV_SYM_DISPATCH MlasConvSymDispatchAvx2 = {
     MlasConvSymDepthwiseKernelAvx2,
     16,                                     // KernelChannelCount
     4,                                      // KernelOutputCount
+    8,                                      // KernelOutputChannelAlignment
     16,                                     // KernelDepthwiseChannelCount
     4,                                      // KernelDepthwiseOutputCount
 };
@@ -114,6 +116,7 @@ const MLAS_CONV_SYM_DISPATCH MlasConvSymDispatchAvxVnni = {
     MlasConvSymDepthwiseKernelAvxVnni,
     16,                                     // KernelChannelCount
     6,                                      // KernelOutputCount
+    8,                                      // KernelOutputChannelAlignment
     16,                                     // KernelDepthwiseChannelCount
     4,                                      // KernelDepthwiseOutputCount
 };
@@ -125,6 +128,7 @@ const MLAS_CONV_SYM_DISPATCH MlasConvSymDispatchAvx512Core = {
     MlasConvSymDepthwiseKernelAvx512Core,
     64,                                     // KernelChannelCount
     6,                                      // KernelOutputCount
+    4,                                      // KernelOutputChannelAlignment
     64,                                     // KernelDepthwiseChannelCount
     6,                                      // KernelDepthwiseOutputCount
 };
@@ -134,6 +138,7 @@ const MLAS_CONV_SYM_DISPATCH MlasConvSymDispatchAvx512Vnni = {
     MlasConvSymDepthwiseKernelAvx512Vnni,
     64,                                     // KernelChannelCount
     6,                                      // KernelOutputCount
+    4,                                      // KernelOutputChannelAlignment
     64,                                     // KernelDepthwiseChannelCount
     6,                                      // KernelDepthwiseOutputCount
 };
@@ -194,15 +199,9 @@ MlasConvSymPackWSize(
             return 0;
         }
 
-#if 0
-        if ((OutputChannels % 4) != 0) {
+        if ((OutputChannels % ConvSymDispatch->KernelOutputChannelAlignment) != 0) {
             return 0;
         }
-#else
-        if ((OutputChannels % 8) != 0) {
-            return 0;
-        }
-#endif
 
         // BUGBUG: assumes aligned input channels, align to 4
 
