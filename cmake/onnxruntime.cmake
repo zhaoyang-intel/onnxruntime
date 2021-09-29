@@ -3,11 +3,7 @@
 
 if(UNIX)
   set(SYMBOL_FILE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime.lds)
-  if(APPLE)
-    set(OUTPUT_STYLE xcode)
-  else()
-    set(OUTPUT_STYLE gcc)
-  endif()
+  set(OUTPUT_STYLE gcc)
 else()
   set(SYMBOL_FILE ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime_dll.def)
   set(OUTPUT_STYLE vc)

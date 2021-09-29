@@ -205,6 +205,8 @@ jobs:
         pathtoPublish: '$(Build.BinariesDirectory)\onnxruntime-java-win-${{ parameters.msbuildPlatform }}' 
         artifactName: 'drop-onnxruntime-java-win-${{ parameters.packageName }}'
 
+    # TEMPORARY!
+    #
     # - ${{ if eq(parameters['DoCompliance'], 'true') }}:
     #   - task: Semmle@0
     #     condition: and(succeeded(), eq('${{ parameters.buildJava}}', true))
