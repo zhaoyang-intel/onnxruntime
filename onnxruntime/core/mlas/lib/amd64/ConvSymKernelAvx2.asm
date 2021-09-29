@@ -961,10 +961,6 @@ ExitKernel:
 
         ENDM
 
-ConvSymPostProcessFunction MACRO RowCount
-
-        ENDM
-
 ;
 ; Generate the convolution kernels.
 ;

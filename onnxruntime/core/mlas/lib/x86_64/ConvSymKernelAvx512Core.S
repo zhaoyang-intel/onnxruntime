@@ -443,7 +443,6 @@ Return Value:
 
 .LExitKernel\@:
         vzeroupper
-
         add     rsp,.LConvSymKernelFrame_SavedR15
         pop     r15
         pop     r14
@@ -648,7 +647,6 @@ Return Value:
 
 .LExitKernel\@:
         vzeroupper
-
         add     rsp,.LConvSymDepthwiseKernelFrame_SavedR15
         pop     r15
         pop     r14
