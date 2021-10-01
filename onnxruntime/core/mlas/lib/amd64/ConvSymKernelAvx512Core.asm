@@ -480,6 +480,7 @@ ExitKernel:
 ;
 ;   Isa - Supplies the instruction set architecture string.
 ;
+
 ConvSymDepthwiseKernelFunction MACRO Isa
 
 ;++
@@ -590,62 +591,62 @@ ProcessNextInputBlock:
         jbe     ComputeDepthwiseBlockBy48
 
 ComputeDepthwiseBlockBy64:
-        vpmovzxbd zmm2{k4},XMMWORD PTR [rdx+3*16]
-        vpmovzxbd zmm0{k4},XMMWORD PTR [r10+rax+3*16]
-        vpmovzxbd zmm1{k4},XMMWORD PTR [r11+rax+3*16]
+        vpmovzxbd zmm2{k4}{z},XMMWORD PTR [rdx+3*16]
+        vpmovzxbd zmm0{k4}{z},XMMWORD PTR [r10+rax+3*16]
+        vpmovzxbd zmm1{k4}{z},XMMWORD PTR [r11+rax+3*16]
         MultiplyAccumulateCell&Isa& zmm11,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm15,zmm1,zmm2
-        vpmovzxbd zmm0{k4},XMMWORD PTR [r12+rax+3*16]
-        vpmovzxbd zmm1{k4},XMMWORD PTR [r13+rax+3*16]
+        vpmovzxbd zmm0{k4}{z},XMMWORD PTR [r12+rax+3*16]
+        vpmovzxbd zmm1{k4}{z},XMMWORD PTR [r13+rax+3*16]
         MultiplyAccumulateCell&Isa& zmm19,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm23,zmm1,zmm2
-        vpmovzxbd zmm0{k4},XMMWORD PTR [r14+rax+3*16]
-        vpmovzxbd zmm1{k4},XMMWORD PTR [r15+rax+3*16]
+        vpmovzxbd zmm0{k4}{z},XMMWORD PTR [r14+rax+3*16]
+        vpmovzxbd zmm1{k4}{z},XMMWORD PTR [r15+rax+3*16]
         MultiplyAccumulateCell&Isa& zmm27,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm31,zmm1,zmm2
 
 ComputeDepthwiseBlockBy48:
-        vpmovzxbd zmm2{k3},XMMWORD PTR [rdx+2*16]
-        vpmovzxbd zmm0{k3},XMMWORD PTR [r10+rax+2*16]
-        vpmovzxbd zmm1{k3},XMMWORD PTR [r11+rax+2*16]
+        vpmovzxbd zmm2{k3}{z},XMMWORD PTR [rdx+2*16]
+        vpmovzxbd zmm0{k3}{z},XMMWORD PTR [r10+rax+2*16]
+        vpmovzxbd zmm1{k3}{z},XMMWORD PTR [r11+rax+2*16]
         MultiplyAccumulateCell&Isa& zmm10,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm14,zmm1,zmm2
-        vpmovzxbd zmm0{k3},XMMWORD PTR [r12+rax+2*16]
-        vpmovzxbd zmm1{k3},XMMWORD PTR [r13+rax+2*16]
+        vpmovzxbd zmm0{k3}{z},XMMWORD PTR [r12+rax+2*16]
+        vpmovzxbd zmm1{k3}{z},XMMWORD PTR [r13+rax+2*16]
         MultiplyAccumulateCell&Isa& zmm18,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm22,zmm1,zmm2
-        vpmovzxbd zmm0{k3},XMMWORD PTR [r14+rax+2*16]
-        vpmovzxbd zmm1{k3},XMMWORD PTR [r15+rax+2*16]
+        vpmovzxbd zmm0{k3}{z},XMMWORD PTR [r14+rax+2*16]
+        vpmovzxbd zmm1{k3}{z},XMMWORD PTR [r15+rax+2*16]
         MultiplyAccumulateCell&Isa& zmm26,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm30,zmm1,zmm2
 
 ComputeDepthwiseBlockBy32:
-        vpmovzxbd zmm2{k2},XMMWORD PTR [rdx+1*16]
-        vpmovzxbd zmm0{k2},XMMWORD PTR [r10+rax+1*16]
-        vpmovzxbd zmm1{k2},XMMWORD PTR [r11+rax+1*16]
+        vpmovzxbd zmm2{k2}{z},XMMWORD PTR [rdx+1*16]
+        vpmovzxbd zmm0{k2}{z},XMMWORD PTR [r10+rax+1*16]
+        vpmovzxbd zmm1{k2}{z},XMMWORD PTR [r11+rax+1*16]
         MultiplyAccumulateCell&Isa& zmm9,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm13,zmm1,zmm2
-        vpmovzxbd zmm0{k2},XMMWORD PTR [r12+rax+1*16]
-        vpmovzxbd zmm1{k2},XMMWORD PTR [r13+rax+1*16]
+        vpmovzxbd zmm0{k2}{z},XMMWORD PTR [r12+rax+1*16]
+        vpmovzxbd zmm1{k2}{z},XMMWORD PTR [r13+rax+1*16]
         MultiplyAccumulateCell&Isa& zmm17,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm21,zmm1,zmm2
-        vpmovzxbd zmm0{k2},XMMWORD PTR [r14+rax+1*16]
-        vpmovzxbd zmm1{k2},XMMWORD PTR [r15+rax+1*16]
+        vpmovzxbd zmm0{k2}{z},XMMWORD PTR [r14+rax+1*16]
+        vpmovzxbd zmm1{k2}{z},XMMWORD PTR [r15+rax+1*16]
         MultiplyAccumulateCell&Isa& zmm25,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm29,zmm1,zmm2
 
 ComputeDepthwiseBlockBy16:
-        vpmovzxbd zmm2{k1},XMMWORD PTR [rdx]
-        vpmovzxbd zmm0{k1},XMMWORD PTR [r10+rax]
-        vpmovzxbd zmm1{k1},XMMWORD PTR [r11+rax]
+        vpmovzxbd zmm2{k1}{z},XMMWORD PTR [rdx]
+        vpmovzxbd zmm0{k1}{z},XMMWORD PTR [r10+rax]
+        vpmovzxbd zmm1{k1}{z},XMMWORD PTR [r11+rax]
         MultiplyAccumulateCell&Isa& zmm8,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm12,zmm1,zmm2
-        vpmovzxbd zmm0{k1},XMMWORD PTR [r12+rax]
-        vpmovzxbd zmm1{k1},XMMWORD PTR [r13+rax]
+        vpmovzxbd zmm0{k1}{z},XMMWORD PTR [r12+rax]
+        vpmovzxbd zmm1{k1}{z},XMMWORD PTR [r13+rax]
         MultiplyAccumulateCell&Isa& zmm16,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm20,zmm1,zmm2
-        vpmovzxbd zmm0{k1},XMMWORD PTR [r14+rax]
-        vpmovzxbd zmm1{k1},XMMWORD PTR [r15+rax]
+        vpmovzxbd zmm0{k1}{z},XMMWORD PTR [r14+rax]
+        vpmovzxbd zmm1{k1}{z},XMMWORD PTR [r15+rax]
         MultiplyAccumulateCell&Isa& zmm24,zmm0,zmm2
         MultiplyAccumulateCell&Isa& zmm28,zmm1,zmm2
         add     rdx,rsi                     ; advance filter to next kernel
