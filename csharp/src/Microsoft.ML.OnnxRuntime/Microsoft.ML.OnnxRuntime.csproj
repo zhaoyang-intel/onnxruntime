@@ -182,6 +182,12 @@
           Pack="false"
           Visible="false"
     />
+    <None Include="$(NativeBuildOutputDir)\onnx_test_runner.exe"
+          Condition="('$(IsReleaseBuild)' != 'true') And ($(TargetArchitecture)=='x64') And Exists('$(NativeBuildOutputDir)\onnx_test_runner.exe')"
+          PackagePath="\runtimes\win-$(TargetArchitecture)\native"
+          Pack="false"
+          Visible="false"
+    />
   </ItemGroup>
 
   <ItemGroup>
