@@ -21,7 +21,15 @@ import tempfile
 import os
 from distutils.version import LooseVersion
 
-from onnxruntime.training.ortmodule import ORTModule, _utils, _io, DebugOptions, LogLevel, _fallback, _graph_execution_manager
+from onnxruntime.training.ortmodule._custom_gradient_registry import register_gradient
+
+from onnxruntime.training.ortmodule import (ORTModule,
+                                            _utils,
+                                            _io,
+                                            DebugOptions,
+                                            LogLevel,
+                                            _fallback,
+                                            _graph_execution_manager)
 import _test_helpers
 
 # Import autocasting libs
@@ -3860,9 +3868,112 @@ def test_ortmodule_determinism_flag(is_training,deterministic):
     model = ORTModule(model)
     model.train(is_training)
 
-    for i in range(5):
+    for _ in range(5):
         x = torch.randn(N, D_in)
         _ = model(x)
 
         from onnxruntime.training.ortmodule import _are_deterministic_algorithms_enabled
         assert _are_deterministic_algorithms_enabled() is torch.are_deterministic_algorithms_enabled()
+
+
+def test_ortmodule_gradient_builder():
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super(Model, self).__init__()
+        def forward(self, x):
+            return torch.cos(x)
+
+    device = 'cuda'
+
+    @register_gradient('', 'Cos')
+    def Cos_gradient():
+        return [('Sin', ['I(0)'], ['Sin_X']),
+                ('Mul', ['Sin_X', 'GO(0)'], ['Sin_X_Times_dY']),
+                ('Neg', ['Sin_X_Times_dY'], ['GI(0)'])]
+
+    pt_model = Model().to(device)
+    ort_model = ORTModule(copy.deepcopy(pt_model))
+
+    def run_step(model, x):
+        prediction = model(x)
+        loss = prediction.sum()
+        loss.backward()
+        return prediction
+
+    pt_x = torch.randn(2, 2, device=device, requires_grad=True, dtype=torch.float32)
+    ort_x = copy.deepcopy(pt_x)
+    pt_prediction = run_step(pt_model, pt_x)
+    ort_prediction = run_step(ort_model, ort_x)
+    _test_helpers.assert_values_are_close(ort_prediction, pt_prediction)
+    _test_helpers.assert_values_are_close(ort_x.grad, pt_x.grad )
+
+
+def test_override_pytorch_exporter_kwargs():
+    device = 'cuda'
+
+    N, D_in, H, D_out = 64, 784, 500, 10
+    x = torch.randn(N, D_in, device=device)
+    model = NeuralNetSinglePositionalArgument(D_in, H, D_out).to(device)
+
+    ort_model = ORTModule(model)
+    ort_model._torch_module._execution_manager(True)._export_extra_kwargs = {'custom_opsets': None}
+
+    # Make sure model runs without any exception
+    prediction = ort_model(x)
+    assert prediction is not None
+    prediction = prediction.sum()
+    prediction.backward()
+
+
+def test_override_pytorch_exporter_kwargs__invalid():
+    device = 'cuda'
+
+    N, D_in, H, D_out = 64, 784, 500, 10
+    x = torch.randn(N, D_in, device=device)
+    model = NeuralNetSinglePositionalArgument(D_in, H, D_out).to(device)
+
+    ort_model = ORTModule(model)
+    ort_model._torch_module._execution_manager(True)._export_extra_kwargs = {'verbose': False}
+    with pytest.raises(_fallback.ORTModuleONNXModelException) as type_error:
+        _ = ort_model(x)
+    assert "The following PyTorch exporter arguments cannot be specified: '{'verbose'}'." in str(type_error.value)
+
+
+def test_override_pytorch_exporter_kwargs_using_ortmodule_extension__invalid():
+    device = 'cuda'
+
+    class ORTModuleExtension(ORTModule):
+        def __init__(self, module, debug_options=None):
+            super().__init__(module, debug_options)
+            for training_mode in [False, True]:
+                self._torch_module._execution_manager(training_mode)._export_extra_kwargs = {'verbose': None}
+
+    N, D_in, H, D_out = 64, 784, 500, 10
+    x = torch.randn(N, D_in, device=device)
+    model = NeuralNetSinglePositionalArgument(D_in, H, D_out).to(device)
+    ort_model = ORTModuleExtension(model)
+
+    with pytest.raises(_fallback.ORTModuleONNXModelException) as type_error:
+        _ = ort_model(x)
+    assert "The following PyTorch exporter arguments cannot be specified: '{'verbose'}'." in str(type_error.value)
+
+def test_override_pytorch_exporter_kwargs_using_ortmodule_extension():
+    device = 'cuda'
+
+    class ORTModuleExtension(ORTModule):
+        def __init__(self, module, debug_options=None):
+            super().__init__(module, debug_options)
+            # modify GraphExecutionManager internally
+            for training_mode in [False, True]:
+                self._torch_module._execution_manager(training_mode)._export_extra_kwargs = {'custom_opsets': None}
+
+    N, D_in, H, D_out = 64, 784, 500, 10
+    x = torch.randn(N, D_in, device=device)
+    model = NeuralNetSinglePositionalArgument(D_in, H, D_out).to(device)
+    ort_model = ORTModuleExtension(model)
+
+    # Make sure model runs without any exception
+    prediction = ort_model(x)
+    assert prediction is not None
+    prediction = prediction.sum()
+    prediction.backward()
