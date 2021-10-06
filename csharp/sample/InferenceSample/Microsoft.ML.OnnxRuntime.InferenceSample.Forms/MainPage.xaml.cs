@@ -18,8 +18,20 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms
             InferenceSampleApi.Execute();
             Console.WriteLine("Done");
 
-            Console.WriteLine("Using API (using platform-specific session options)");
-            InferenceSampleApi.Execute(App.PlatformSessionOptions);
+            Console.WriteLine("Using API (using default platform-specific session options)");
+            InferenceSampleApi.Execute(SessionOptionsContainer.Create());
+            Console.WriteLine("Done");
+
+            Console.WriteLine("Using API (using named platform-specific session options)");
+            InferenceSampleApi.Execute(SessionOptionsContainer.Create("ort_enable_extended"));
+            Console.WriteLine("Done");
+
+            Console.WriteLine("Using API (using default platform-specific session options via ApplyConfiguration extension)");
+            InferenceSampleApi.Execute(new SessionOptions().ApplyConfiguration("ort_enable_extended"));
+            Console.WriteLine("Done");
+
+            Console.WriteLine("Using API (using named platform-specific session options via ApplyConfiguration extension)");
+            InferenceSampleApi.Execute(new SessionOptions().ApplyConfiguration("ort_enable_extended"));
             Console.WriteLine("Done");
         }
     }

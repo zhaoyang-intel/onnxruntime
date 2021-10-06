@@ -15,7 +15,15 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms.Droid
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             global::Xamarin.Forms.Forms.Init(this, savedInstanceState);
 
-            App.PlatformSessionOptions.AppendExecutionProvider_Nnapi();
+            // Register default session options configuration
+            SessionOptionsContainer.Register((options) => options.AppendExecutionProvider_Nnapi());
+
+            // Register a named session options configuration
+            SessionOptionsContainer.Register("ort_enable_extended", (options) =>
+            {
+                options.AppendExecutionProvider_Nnapi();
+                options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_EXTENDED;
+            });
 
             LoadApplication(new App());
         }
