@@ -5,19 +5,20 @@
     <Platform Condition=" '$(Platform)' == '' ">iPhoneSimulator</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{97B32648-1B4A-4E35-8058-B2AD7373B6E6}</ProjectGuid>
+    <ProjectGuid>{7BE012C6-4EBE-4555-8CC9-5AE856A92DFF}</ProjectGuid>
     <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <TemplateGuid>{6143fdea-f3c2-4a09-aafa-6e230626515e}</TemplateGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Microsoft.ML.OnnxRuntime.InferenceSample.Forms.iOS</RootNamespace>
+    <RootNamespace>FasterRcnnSample.Forms.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <AssemblyName>Microsoft.ML.OnnxRuntime.InferenceSample.Forms.iOS</AssemblyName>
+    <AssemblyName>FasterRcnnSample.Forms.iOS</AssemblyName>
     <MtouchEnableSGenConc>true</MtouchEnableSGenConc>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <ProvisioningType>automatic</ProvisioningType>
   </PropertyGroup>
   <PropertyGroup>
-      <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
+      <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+      <MtouchExtraArgs>--nowarn:0109</MtouchExtraArgs>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>
@@ -64,13 +65,9 @@
     <MtouchArch>ARM64</MtouchArch>
     <CodesignKey>iPhone Developer</CodesignKey>
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
-  </PropertyGroup>
-  <PropertyGroup>
-      <OnnxNativeFrameworkPathPhone>..\..\..\build\iOS\iphoneos\Release\Release-iphoneos\onnxruntime.framework</OnnxNativeFrameworkPathPhone>
-      <OnnxNativeFrameworkPathSimulator>..\..\..\build\iOS\iphonesimulator\Release\Release-iphonesimulator\onnxruntime.framework</OnnxNativeFrameworkPathSimulator>
-  </PropertyGroup>
-  <PropertyGroup Condition="('$(Platform)' == 'iPhoneSimulator' AND Exists('$(OnnxNativeFrameworkPathSimulator)')) OR ('$(Platform)' == 'iPhone' AND Exists('$(OnnxNativeFrameworkPathPhone)'))">
-      <DefineConstants>__NATIVE_DEPENDENCIES_EXIST__</DefineConstants>
+    <MtouchUseLlvm>true</MtouchUseLlvm>
+    <MtouchLink>Full</MtouchLink>
+    <MtouchExtraArgs>--nowarn:0109</MtouchExtraArgs>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -133,30 +130,22 @@
     <Reference Include="System.Numerics.Vectors" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2083" />
+    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2125" />
     <PackageReference Include="Xamarin.Essentials" Version="1.7.0" />
-  </ItemGroup>
-  <ItemGroup Condition="('$(Platform)' == 'iPhoneSimulator' AND Exists('$(OnnxNativeFrameworkPathSimulator)')) OR ('$(Platform)' == 'iPhone' AND Exists('$(OnnxNativeFrameworkPathPhone)'))">
-    <ProjectReference Include="..\Microsoft.ML.OnnxRuntime.InferenceSample.Forms\Microsoft.ML.OnnxRuntime.InferenceSample.Forms.csproj">
-      <Project>{C5BDDD5D-F811-4CDD-A977-2D8581C21F36}</Project>
-      <Name>Microsoft.ML.OnnxRuntime.InferenceSample.Forms</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\Microsoft.ML.OnnxRuntime\Microsoft.ML.OnnxRuntime.csproj">
-      <Project>{584B53B3-359D-4DC2-BCD8-530B5D4685AD}</Project>
-      <Name>Microsoft.ML.OnnxRuntime</Name>
-    </ProjectReference>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime">
+      <Version>1.10.0-dev-20211007-0712-73c0796ac</Version>
+    </PackageReference>
+    <PackageReference Include="System.Memory" Version="4.5.4" IncludeAssets="None" />
   </ItemGroup>
   <ItemGroup>
-      <NativeReference Condition=" '$(Platform)' == 'iPhoneSimulator' And Exists('$(OnnxNativeFrameworkPathSimulator)') " Include="$(OnnxNativeFrameworkPathSimulator)">
-      <Kind>Framework</Kind>
-      <ForceLoad>True</ForceLoad>
-      <IsCxx>True</IsCxx>
-    </NativeReference>
-    <NativeReference Condition=" '$(Platform)' == 'iPhone' And Exists('$(OnnxNativeFrameworkPathPhone)') " Include="$(OnnxNativeFrameworkPathPhone)">
-      <Kind>Framework</Kind>
-      <ForceLoad>True</ForceLoad>
-      <IsCxx>True</IsCxx>
-    </NativeReference>
+    <ProjectReference Include="..\FasterRcnnSample.Forms\FasterRcnnSample.Forms.csproj">
+      <Project>{51D1A8FB-ADFF-43DE-8215-DB5E86DA4870}</Project>
+      <Name>FasterRcnnSample.Forms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FasterRcnnSample\FasterRcnnSample.csproj">
+      <Project>{A15403C6-B715-4FF4-AAE5-702A0E1A284D}</Project>
+      <Name>FasterRcnnSample</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
 </Project>
