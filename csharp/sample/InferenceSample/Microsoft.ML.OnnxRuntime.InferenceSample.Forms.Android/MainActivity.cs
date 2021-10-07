@@ -5,7 +5,10 @@ using Android.OS;
 
 namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms.Droid
 {
-    [Activity(Label = "Microsoft.ML.OnnxRuntime.InferenceSample.Forms", Icon = "@mipmap/icon", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize)]
+    [Activity(Label = "Microsoft.ML.OnnxRuntime.InferenceSample.Forms", Icon = "@mipmap/icon",
+              Theme = "@style/MainTheme", MainLauncher = true,
+              ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode |
+                                     ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize)]
     public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
         protected override void OnCreate(Bundle savedInstanceState)
@@ -19,16 +22,16 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms.Droid
             SessionOptionsContainer.Register((options) => options.AppendExecutionProvider_Nnapi());
 
             // Register a named session options configuration
-            SessionOptionsContainer.Register("ort_enable_extended", (options) =>
-            {
+            SessionOptionsContainer.Register("ort_with_npu", (options) => {
                 options.AppendExecutionProvider_Nnapi();
-                options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_EXTENDED;
+                options.LogId = "Ort+Nnapi";
             });
 
             LoadApplication(new App());
         }
 
-        public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
+        public override void OnRequestPermissionsResult(int requestCode, string[] permissions,
+                                                        [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
         {
             Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults);
             base.OnRequestPermissionsResult(requestCode, permissions, grantResults);

@@ -11,16 +11,21 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample
         {
             var model = LoadModelFromEmbeddedResource("TestData.squeezenet.onnx");
 
-            // Optional : Create session options and set the graph optimization level for the session
+            // Optional : Create session options and set any relevant values.
+            // If an additional execution provider is needed it should be added to the SessionOptions prior to
+            // creating the InferenceSession. The CPU Execution Provider is always added by default.
             if (options == null)
-                options = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_EXTENDED };
+            {
+                options = new SessionOptions { LogId = "Sample" };
+            }
 
             using (var session = new InferenceSession(model, options))
             {
                 var inputMeta = session.InputMetadata;
                 var container = new List<NamedOnnxValue>();
 
-                float[] inputData = LoadTensorFromEmbeddedResource("TestData.bench.in"); // this is the data for only one input tensor for this model
+                // this is the data for only one input tensor for this model
+                float[] inputData = LoadTensorFromEmbeddedResource("TestData.bench.in");
 
                 foreach (var name in inputMeta.Keys)
                 {
@@ -29,7 +34,8 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample
                 }
 
                 // Run the inference
-                using (var results = session.Run(container))  // results is an IDisposableReadOnlyCollection<DisposableNamedOnnxValue> container
+                // 'results' is an IDisposableReadOnlyCollection<DisposableNamedOnnxValue> container
+                using (var results = session.Run(container))
                 {
                     // dump the results
                     foreach (var r in results)
@@ -46,10 +52,12 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample
             var tensorData = new List<float>();
             var assembly = typeof(InferenceSampleApi).Assembly;
 
-            using (StreamReader inputFile = new StreamReader(assembly.GetManifestResourceStream($"{assembly.GetName().Name}.{path}")))
+            using (StreamReader inputFile =
+                       new StreamReader(assembly.GetManifestResourceStream($"{assembly.GetName().Name}.{path}")))
             {
-                inputFile.ReadLine(); //skip the input name
-                string[] dataStr = inputFile.ReadLine().Split(new char[] { ',', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+                inputFile.ReadLine(); // skip the input name
+                string[] dataStr =
+                    inputFile.ReadLine().Split(new char[] { ',', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < dataStr.Length; i++)
                 {
                     tensorData.Add(Single.Parse(dataStr[i]));
