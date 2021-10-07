@@ -1,7 +1,8 @@
 ﻿using Foundation;
+using Microsoft.ML.OnnxRuntime;
 using UIKit;
 
-namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms.iOS
+namespace FasterRcnnSample.Forms.iOS
 {
     // The UIApplicationDelegate for the application. This class is responsible for launching the 
     // User Interface of the application, as well as listening (and optionally responding) to 
@@ -18,18 +19,12 @@ namespace Microsoft.ML.OnnxRuntime.InferenceSample.Forms.iOS
         //
         public override bool FinishedLaunching(UIApplication app, NSDictionary options)
         {
+            SessionOptionsContainer.Register(nameof(SessionOptionMode.Platform), (sessionOptions) => sessionOptions.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE));
+
             global::Xamarin.Forms.Forms.Init();
-
-#if !__NATIVE_DEPENDENCIES_EXIST__
-            throw new System.Exception("The requisite onnxruntime.framework file(s) were not found. You must build the native iOS components before running this sample");
-#else
-            App.PlatformSessionOptions.AppendExecutionProvider_CoreML(COREMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE);
             LoadApplication(new App());
-#endif
 
-#pragma warning disable CS0162 // Unreachable code detected
             return base.FinishedLaunching(app, options);
-#pragma warning restore CS0162 // Unreachable code detected
         }
     }
 }
