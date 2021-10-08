@@ -23,7 +23,8 @@
     <None Remove="Xamarin.Essentials" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.10.0-dev-20211007-0712-73c0796ac" />
+    <!-- TODO: Update to use official package once Xamarin support is added to it -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.10.0-dev" />
     <PackageReference Include="SkiaSharp" Version="2.80.3" />
   </ItemGroup>
 </Project>
