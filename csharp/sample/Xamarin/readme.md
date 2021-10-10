@@ -1,9 +1,9 @@
-Until ORT is release with Xamarin support in the nuget package you need to
+Until ORT is officially released with Xamarin support in the nuget package you need to
   - get the managed and native nuget packages from the internal Zip-Nuget-Java packaging pipeline for a build of master
   - put that in a local directory
   - update the nuget.config to point to that directory
 
-Additionally, the fastrcnn model is required to be in the Models directory.
+Additionally, the FasterRCNN model is required to be in the Models directory.
 
 From this directory:
 ```
