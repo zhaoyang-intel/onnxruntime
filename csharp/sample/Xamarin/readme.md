@@ -8,5 +8,6 @@ Additionally, the fastrcnn model is required to be in the Models directory.
 From this directory:
 ```
 > mkdir Models
+> cd Models
 > wget https://github.com/onnx/models/blob/master/vision/object_detection_segmentation/faster-rcnn/model/FasterRCNN-10.onnx
 ```
