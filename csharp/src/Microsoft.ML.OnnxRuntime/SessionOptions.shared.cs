@@ -132,12 +132,11 @@ namespace Microsoft.ML.OnnxRuntime
         /// Use only if ROCM is installed and you have the onnxruntime package specific to this Execution Provider.
         /// </summary>
         /// <param name="deviceId">Device Id</param>
-        /// <param name="gpuMemLimit">GPU memory limit. Defaults to no limit.</param>
         /// <returns>A SessionsOptions() object configured for execution on deviceId</returns>
-        public static SessionOptions MakeSessionOptionWithRocmProvider(int deviceId = 0, UIntPtr gpuMemLimit = default)
+        public static SessionOptions MakeSessionOptionWithRocmProvider(int deviceId = 0)
         {
             SessionOptions options = new SessionOptions();
-            options.AppendExecutionProvider_ROCM(deviceId, gpuMemLimit);
+            options.AppendExecutionProvider_ROCM(deviceId);
             return options;
         }
 #endregion
@@ -240,14 +239,13 @@ namespace Microsoft.ML.OnnxRuntime
         /// Use only if you have the onnxruntime package specific to this Execution Provider.
         /// </summary>
         /// <param name="deviceId">Device Id</param>
-        /// <param name="gpuMemLimit">GPU memory limit. Defaults to no limit.</param>
-        public void AppendExecutionProvider_ROCM(int deviceId = 0, UIntPtr gpuMemLimit = default)
+        public void AppendExecutionProvider_ROCM(int deviceId = 0)
         {
 #if __MOBILE__
             throw new NotSupportedException("The ROCM Execution Provider is not supported in this build");
 #else
             NativeApiStatus.VerifySuccess(
-                NativeMethods.OrtSessionOptionsAppendExecutionProvider_ROCM(handle, deviceId, gpuMemLimit));
+                NativeMethods.OrtSessionOptionsAppendExecutionProvider_ROCM(handle, deviceId));
 #endif
         }
 
