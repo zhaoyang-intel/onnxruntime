@@ -61,7 +61,8 @@ class TrainingManager(GraphExecutionManager):
         return user_outputs, run_info
 
     def _create_autofunction_class(self):
-        
+        global _ORTModuleFunction
+
         class _ORTModuleFunction(torch.autograd.Function):
             '''Use a custom torch.autograd.Function to associate self.backward_graph as the
             gradient implementation for self.forward_graph.'''
@@ -183,7 +184,7 @@ class TrainingManager(GraphExecutionManager):
                     else:
                         results.append(None)
 
-                return tuple(results)        
+                return tuple(results)
 
         return _ORTModuleFunction
 

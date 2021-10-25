@@ -147,8 +147,8 @@ class GraphExecutionManager(GraphExecutionInterface):
         self._module_output_schema = None
         self._device = _utils.get_device_from_module(module)
 
-        self._module_parameters = inspect.signature(
-            self._original_module.forward).parameters.values()
+        self._module_parameters = list(inspect.signature(
+            self._original_module.forward).parameters.values())
 
         # TODO: remove after PyTorch ONNX exporter supports VAR_KEYWORD parameters.
         for input_parameter in self._module_parameters:
