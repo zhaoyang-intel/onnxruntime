@@ -2418,6 +2418,33 @@ TEST_F(GraphTransformationTests, AttentionFusionWithPastAndNoUnidirMaskTest) {
   }
 }
 
+// Test GPT-2 Attention Fusion with float32 mask. Latest pattern in Oct 2021
+TEST_F(GraphTransformationTests, AttentionFusionGPT2WithPastTest) {
+  auto model_uri = MODEL_FOLDER "fusion/gpt2_past_one_layer_v2.onnx";
+  std::shared_ptr<Model> p_model;
+  ASSERT_STATUS_OK(Model::Load(model_uri, p_model, nullptr, *logger_));
+  Graph& graph = p_model->MainGraph();
+
+  onnxruntime::GraphTransformerManager graph_transformation_mgr{5};
+  ASSERT_STATUS_OK(graph_transformation_mgr.Register(std::make_unique<AttentionFusion>(), TransformerLevel::Level2));
+  ASSERT_STATUS_OK(graph_transformation_mgr.ApplyTransformers(graph, TransformerLevel::Level2, *logger_));
+
+  std::map<std::string, int> op_to_count = CountOpsInGraph(graph);
+  EXPECT_EQ(op_to_count["Transpose"], 0);
+  EXPECT_EQ(op_to_count["Softmax"], 0);
+  EXPECT_EQ(op_to_count["com.microsoft.Attention"], 1);
+
+  GraphViewer graph_viewer(graph);
+  const auto& node_topology_list = graph_viewer.GetNodesInTopologicalOrder();
+
+  for (auto node_index : node_topology_list) {
+    Node* p_node = graph.GetNode(node_index);
+    if (p_node->OpType().compare("Attention") == 0) {
+      EXPECT_EQ(p_node->GetAttributes().at("unidirectional").i(), 1);
+    }
+  }
+}
+
 // Test GPT-2 Attention Fusion with float32 mask
 TEST_F(GraphTransformationTests, AttentionFusionGPTWithPastAndMaskTest) {
   auto model_uri = MODEL_FOLDER "fusion/gpt2_past_mask_one_layer.onnx";
