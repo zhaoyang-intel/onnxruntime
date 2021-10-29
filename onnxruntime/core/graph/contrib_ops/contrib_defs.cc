@@ -236,7 +236,7 @@ void embedLayerNormalizationShapeInference(InferenceContext& ctx) {
         "gamma should have 2 dimension, dimension size known, "
         "and same hidden size as word_embedding.");
   }
-  
+
   auto& beta_shape = getInputShape(ctx, 6);
   auto& beta_dims = gamma_shape.dim();
   if (beta_dims.size() != 1 ||
@@ -529,11 +529,15 @@ void AttentionTypeAndShapeInference(ONNX_NAMESPACE::InferenceContext& ctx, int p
 void DecoderAttentionTypeAndShapeInference(ONNX_NAMESPACE::InferenceContext& ctx) {
   // Type inference
   ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 0, 0);
-  if (ctx.getNumOutputs() > 1 && ctx.getNumInputs() > 5) {
-    ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 5, 1);
-    ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 5, 2);
+  // This is not correct because sometime there is cache output but no cache input
+  // if (ctx.getNumOutputs() > 1 && ctx.getNumInputs() > 5) {
+  //   ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 5, 1);
+  //   ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 5, 2);
+  // }
+  if (ctx.getNumOutputs() > 1) {
+    ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 0, 1);
+    ONNX_NAMESPACE::propagateElemTypeFromInputToOutput(ctx, 0, 2);
   }
-
   // Shape inference
   // TODO
 }
@@ -817,13 +821,13 @@ GELU (Gaussian Error Linear Unit) approximation: Y=0.5*X*(1+tanh(0.797885*X+0.03
             .Const("one", 1.0, elem_type)
             .Add(hasBias ? "X_bias = Add (X, bias)" : "X_bias = Identity (X)")
             .Add(R"(
-                T1 = Mul (X_bias, X_bias) 
-                T2 = Mul (c, T1) 
-                T3 = Add (b, T2) 
-                T4 = Mul (X_bias, T3) 
-                T5 = Tanh (T4) 
-                T6 = Add (one, T5) 
-                T7 = Mul (X_bias, T6) 
+                T1 = Mul (X_bias, X_bias)
+                T2 = Mul (c, T1)
+                T3 = Add (b, T2)
+                T4 = Mul (X_bias, T3)
+                T5 = Tanh (T4)
+                T6 = Add (one, T5)
+                T7 = Mul (X_bias, T6)
                 Y = Mul (a, T7)
             )");
 
