@@ -8,7 +8,7 @@ parameters:
 - name: PostToDashboard
   displayName: Post to Dashboard
   type: boolean
-  default: true
+  default: false
 
 - name: RunNvidiaContainer
   displayName: Run in Nvidia Container (or set trtContainer Variable)
@@ -36,13 +36,11 @@ parameters:
 - name: PublishWheel
   displayName: Publish Wheel 
   type: boolean
-  default: false
+  default: true
 
 - name: ModelGroups
   type: object
-  default: 
-    - "onnx-zoo-models"
-    - "partner-models"
+  default: []
 
 - name: MemTest
   displayName: Run Memory Test
